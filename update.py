@@ -7,6 +7,11 @@ from libcloud.dns.types import Provider, RecordType
 from libcloud.common.types import LibcloudError
 from pprint import pprint
 
+
+class ZoneError(Exception):
+    pass
+
+
 parser = argparse.ArgumentParser(description='Create or update DNS record')
 parser.add_argument('--domain', metavar='<DOMAIN>', default=os.environ.get('DOMAIN'),
                     help='Name of of the domain that contains the DNS record')
@@ -24,6 +29,8 @@ parser.add_argument('--provider', metavar='<PROVIDER>', default=Provider.ROUTE53
                     help='The value of the DNS record')
 parser.add_argument('--record', metavar='<RECORD>', default=os.environ.get('RECORD'),
                     help='The the DNS record to create')
+parser.add_argument('--zone-id', metavar='<ZONEID>', default=os.environ.get('ZONEID'),
+                    help="The zone's ID in the upstream provider")
 args = parser.parse_args()
 
 CREDENTIALS = (args.identity, args.secret)
@@ -37,7 +44,16 @@ DEBUG = True
 cls = get_driver(Provider.ROUTE53)
 driver = cls(*CREDENTIALS)
 
-zone = [z for z in driver.list_zones() if z.domain == args.domain][0]
+zones = [z for z in driver.list_zones() if z.domain == args.domain]
+if args.zone_id:
+  zones = [z for z in zones if z.id == args.zone_id]
+
+if not zones:
+  raise ZoneError('Unable to find zone for {}'.format(args.domain))
+elif len(zones) > 1:
+  raise ZoneError('Multiple zones found for {}'.format(args.domain))
+
+zone = zones[0]
 
 records = driver.list_records(zone)
 
