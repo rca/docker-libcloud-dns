@@ -71,7 +71,11 @@ if exists is False:
 else:
   try:
     record = [r for r in driver.list_records(zone) if r.name == args.record][0]
-    newRecord = driver.update_record(record=record, name=args.record, type=args.type, data=args.value, extra=extra)
-    print "Updated %s.%s to %s" % (args.record, args.domain, args.value)
+
+    if record.data == args.value:
+      print "Skipped {}, already up to date".format(args.record)
+    else:
+      newRecord = driver.update_record(record=record, name=args.record, type=args.type, data=args.value, extra=extra)
+      print "Updated %s.%s to %s" % (args.record, args.domain, args.value)
   except LibcloudError:
     print "Could not create %s.%s" % (args.record, args.domain)
